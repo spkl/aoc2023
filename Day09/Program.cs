@@ -29,15 +29,7 @@
 
     private static int FindPreviousValue(int[] values)
     {
-        int[][] allDifferences = CalculateAllDifferences(values).ToArray();
-
-        allDifferences[^1] = [0, .. allDifferences[^1]];
-        for (int i = allDifferences.Length - 1; i > 0; i--)
-        {
-            allDifferences[i - 1] = [allDifferences[i - 1][0] - allDifferences[i][0], .. allDifferences[i - 1]];
-        }
-
-        return values[0] - allDifferences[0][0];
+        return FindNextValue(values.Reverse().ToArray());
     }
 
     private static IEnumerable<int[]> CalculateAllDifferences(int[] values)
