@@ -4,22 +4,20 @@
 
     private char this[Position p]
     {
-        get
+        get => this.IsOutsideMap(p) ? '.' : this.rows[p.Y][p.X];
+        set
         {
-            if (p.Y < 0 || p.X < 0 || p.Y > this.rows.Length - 1 || p.X > this.rows[p.Y].Length - 1)
-            {
-                return '.';
-            }
-
-            return this.rows[p.Y][p.X];
+            char[] row = this.rows[p.Y].ToCharArray();
+            row[p.X] = value;
+            this.rows[p.Y] = new string(row);
         }
     }
 
     internal Position FindStart()
     {
-        for (int y = 0; y < rows.Length; y++)
+        for (int y = 0; y < this.rows.Length; y++)
         {
-            int x = rows[y].IndexOf('S');
+            int x = this.rows[y].IndexOf('S');
             if (x != -1)
             {
                 return new Position(x, y);
@@ -27,6 +25,26 @@
         }
 
         throw new Exception("Could not find start in map.");
+    }
+
+    internal void ReplaceStartSymbol(Position start)
+    {
+        bool left = this.CanGoLeft(start);
+        bool right = this.CanGoRight(start);
+        bool up = this.CanGoUp(start);
+        bool down = this.CanGoDown(start);
+
+        char newSymbol = new bool[]{ left, right, up, down } switch {
+            [true, true, false, false] => '-',
+            [true, false, true, false] => 'J',
+            [true, false, false, true] => '7',
+            [false, true, true, false] => 'L',
+            [false, true, false, true] => 'F',
+            [false, false, true, true] => '|',
+            _ => throw new Exception("Start does not connect to exactly two points.")
+        };
+
+        this[start] = newSymbol;
     }
 
     internal int GetStepsToFarthestPointFrom(Position start)
@@ -51,28 +69,6 @@
         List<Position> possiblePositions = [];
         switch (this[fromPos])
         {
-            case 'S': // starting position of the animal - connects to exactly two pipes
-                if (this[fromPos.LeftNeighbor] is '-' or 'L' or 'F')
-                {
-                    possiblePositions.Add(fromPos.LeftNeighbor);
-                }
-
-                if (this[fromPos.RightNeighbor] is '-' or 'J' or '7')
-                {
-                    possiblePositions.Add(fromPos.RightNeighbor);
-                }
-
-                if (this[fromPos.UpNeighbor] is '|' or '7' or 'F')
-                {
-                    possiblePositions.Add(fromPos.UpNeighbor);
-                }
-
-                if (this[fromPos.DownNeighbor] is '|' or 'L' or 'J')
-                {
-                    possiblePositions.Add(fromPos.DownNeighbor);
-                }
-
-                break;
             case '|': // vertical pipe connecting north and south (up and down)
                 possiblePositions.Add(fromPos.UpNeighbor);
                 possiblePositions.Add(fromPos.DownNeighbor);
@@ -104,4 +100,14 @@
         Position toPos = possiblePositions.Where(pos => !notPos.Contains(pos)).First();
         return (toPos, fromPos);
     }
+
+    private bool IsOutsideMap(Position p) => p.Y < 0 || p.X < 0 || p.Y > this.rows.Length - 1 || p.X > this.rows[p.Y].Length - 1;
+
+    private bool CanGoLeft(Position pos) => this[pos.LeftNeighbor] is '-' or 'L' or 'F';
+
+    private bool CanGoRight(Position pos) => this[pos.RightNeighbor] is '-' or 'J' or '7';
+
+    private bool CanGoUp(Position pos) => this[pos.UpNeighbor] is '|' or '7' or 'F';
+
+    private bool CanGoDown(Position pos) => this[pos.DownNeighbor] is '|' or 'L' or 'J';
 }
