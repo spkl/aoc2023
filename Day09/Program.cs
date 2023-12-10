@@ -18,13 +18,13 @@
     {
         int[][] allDifferences = CalculateAllDifferences(values).ToArray();
 
-        allDifferences[^1] = [.. allDifferences[^1], 0];
-        for (int i = allDifferences.Length - 1; i > 0; i--)
+        int nextDiff = 0;
+        foreach (int[] differences in allDifferences.Reverse().Skip(1))
         {
-            allDifferences[i - 1] = [.. allDifferences[i - 1], allDifferences[i - 1][^1] + allDifferences[i][^1]];
+            nextDiff = differences.Last() + nextDiff;
         }
 
-        return values[^1] + allDifferences[0][^1];
+        return values.Last() + nextDiff;
     }
 
     private static int FindPreviousValue(int[] values)
