@@ -2,6 +2,8 @@
 {
     private readonly string[] rows = rows;
 
+    private readonly HashSet<Position> pathPositions = [];
+
     private char this[Position p]
     {
         get => this.IsOutsideMap(p) ? '.' : this.rows[p.Y][p.X];
@@ -20,7 +22,9 @@
             int x = this.rows[y].IndexOf('S');
             if (x != -1)
             {
-                return new Position(x, y);
+                Position start = new(x, y);
+                this.pathPositions.Add(start);
+                return start;
             }
         }
 
@@ -64,6 +68,26 @@
         return steps;
     }
 
+    internal int GetEnclosedPoints()
+    {
+        Position upLeftLimit = new(this.pathPositions.Select(p => p.X).Min(), this.pathPositions.Select(p => p.Y).Min());
+        Position downRightLimit = new(this.pathPositions.Select(p => p.X).Max(), this.pathPositions.Select(p => p.Y).Max());
+        HashSet<Position> enclosedPoints = [];
+
+        foreach (Position p in this.GetPointsInSpan(upLeftLimit, downRightLimit))
+        {
+            if (this.pathPositions.Contains(p) 
+                || !this.IsEnclosedInPath(p, upLeftLimit))
+            {
+                continue;
+            }
+
+            enclosedPoints.Add(p);
+        }
+
+        return enclosedPoints.Count;
+    }
+
     private (Position toPos, Position fromPos) Walk(Position fromPos, params Position[] notPos)
     {
         List<Position> possiblePositions = [];
@@ -98,7 +122,59 @@
         }
 
         Position toPos = possiblePositions.Where(pos => !notPos.Contains(pos)).First();
+        this.pathPositions.Add(toPos);
         return (toPos, fromPos);
+    }
+
+    private bool IsEnclosedInPath(Position p, Position upLeftLimit)
+    {
+        // Idea: If the number of path-crossings to one side is odd, the point is inside the path.
+        // Approach:
+        // Go straight left from the point p to the leftmost limit of the span.
+        // When encountering a path node:
+        // - If the path node is in our direction of travel (-), it does not influence the result.
+        // - If the path node is perpendicular to our direction of travel (|), it counts as as a crossing.
+        // - Every pair of up (J or L) and down (7 or F) elbow nodes counts as one additional crossing.
+        //   (=> Something like 'F--7' does not count as a crossing, but 'L--7' does.)
+
+        int crossings = 0;
+        int upElbows = 0;
+        int downElbows = 0;
+
+        for (int x = p.X - 1; x >= upLeftLimit.X; x--)
+        {
+            Position test = new(x, p.Y);
+            if (!this.pathPositions.Contains(test))
+            {
+                continue;
+            }
+
+            switch (this[test])
+            {
+                case '-':
+                    break;
+                case '|':
+                    crossings++;
+                    break;
+                case 'J':
+                case 'L':
+                    upElbows++;
+                    break;
+                case '7':
+                case 'F':
+                    downElbows++;
+                    break;
+            }
+        }
+
+        while (upElbows > 0 && downElbows > 0)
+        {
+            crossings++;
+            upElbows--;
+            downElbows--;
+        }
+
+        return crossings % 2 != 0;
     }
 
     private bool IsOutsideMap(Position p) => p.Y < 0 || p.X < 0 || p.Y > this.rows.Length - 1 || p.X > this.rows[p.Y].Length - 1;
@@ -110,4 +186,16 @@
     private bool CanGoUp(Position pos) => this[pos.UpNeighbor] is '|' or '7' or 'F';
 
     private bool CanGoDown(Position pos) => this[pos.DownNeighbor] is '|' or 'L' or 'J';
+
+    private IEnumerable<Position> GetPointsInSpan(Position upLeftLimit, Position downRightLimit)
+    {
+        for (int x = upLeftLimit.X; x <= downRightLimit.X; x++)
+        {
+            for (int y = upLeftLimit.Y; y <= downRightLimit.Y; y++)
+            {
+                Position p = new(x, y);
+                yield return p;
+            }
+        }
+    }
 }
