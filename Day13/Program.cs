@@ -21,12 +21,12 @@ internal class Program
             currentPattern.Add(line);
         }
 
-        int result1 = 0;
-        int result2 = 0;
+        int sum1 = 0;
+        int sum2 = 0;
         foreach (List<string> pattern in patterns)
         {
-            int partialResult1 = FindReflection(pattern);
-            result1 += partialResult1;
+            FindResult result1 = FindReflection(pattern, FindResult.None());
+            result1.AddToSum(ref sum1);
 
             for (int row = 0; row < pattern.Count; row++)
             {
@@ -37,10 +37,10 @@ internal class Program
                     chars[col] = chars[col] is '#' ? '.' : '#';
                     changedPattern[row] = new string(chars);
 
-                    int partialResult2 = FindReflection(changedPattern, partialResult1);
-                    if (partialResult2 != -1)
+                    FindResult result2 = FindReflection(changedPattern, result1);
+                    if (result2.Success)
                     {
-                        result2 += partialResult2;
+                        result2.AddToSum(ref sum2);
                         row = int.MaxValue - 1;
                         break;
                     }
@@ -48,27 +48,25 @@ internal class Program
             }
         }
 
-        Console.WriteLine(result1);
-        Console.WriteLine(result2);
+        Console.WriteLine(sum1);
+        Console.WriteLine(sum2);
     }
 
-    private static int FindReflection(List<string> pattern, int unallowedResult = -1)
+    private static FindResult FindReflection(List<string> pattern, FindResult ignore)
     {
-        if (FindVerticalReflection(pattern, out int column) && column != unallowedResult)
+        if (FindVerticalReflection(pattern, ignore.Column, out int column))
         {
-            return column;
+            return FindResult.InColumn(column);
         }
-        else if (FindHorizontalReflection(pattern, out int row) && 100 * row != unallowedResult)
+        else if (FindHorizontalReflection(pattern, ignore.Row, out int row))
         {
-            return 100 * row;
+            return FindResult.InRow(row);
         }
-        else
-        {
-            return -1;
-        }
+        
+        return FindResult.None();
     }
 
-    private static bool FindHorizontalReflection(List<string> pattern, out int row)
+    private static bool FindHorizontalReflection(List<string> pattern, int ignoreRow, out int row)
     {
         for (int i = 0; i <= pattern.Count - 2; i++)
         {
@@ -94,9 +92,9 @@ internal class Program
                 incIndex++;
             }
 
-            if (isReflection)
+            row = i + 1;
+            if (isReflection && ignoreRow != row)
             {
-                row = i + 1;
                 return true;
             }
         }
@@ -105,7 +103,7 @@ internal class Program
         return false;
     }
 
-    private static bool FindVerticalReflection(List<string> pattern, out int column)
+    private static bool FindVerticalReflection(List<string> pattern, int ignoreColumn, out int column)
     {
         List<string> rotatedPattern = [];
         for (int x = 0; x < pattern[0].Length; x++)
@@ -119,6 +117,6 @@ internal class Program
             rotatedPattern.Add(builder.ToString());
         }
         
-        return FindHorizontalReflection(rotatedPattern, out column);
+        return FindHorizontalReflection(rotatedPattern, ignoreColumn, out column);
     }
 }
