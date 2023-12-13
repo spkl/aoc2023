@@ -21,24 +21,51 @@ internal class Program
             currentPattern.Add(line);
         }
 
-        int result = 0;
+        int result1 = 0;
+        int result2 = 0;
         foreach (List<string> pattern in patterns)
         {
-            if (FindVerticalReflection(pattern, out int column))
+            int partialResult1 = FindReflection(pattern);
+            result1 += partialResult1;
+
+            for (int row = 0; row < pattern.Count; row++)
             {
-                result += column;
-            }
-            else if (FindHorizontalReflection(pattern, out int row))
-            {
-                result += 100 * row;
-            }
-            else
-            {
-                throw new Exception("Could not find pattern.");
+                for (int col = 0; col < pattern[row].Length; col++)
+                {
+                    List<string> changedPattern = [.. pattern];
+                    char[] chars = changedPattern[row].ToCharArray();
+                    chars[col] = chars[col] is '#' ? '.' : '#';
+                    changedPattern[row] = new string(chars);
+
+                    int partialResult2 = FindReflection(changedPattern, partialResult1);
+                    if (partialResult2 != -1)
+                    {
+                        result2 += partialResult2;
+                        row = int.MaxValue - 1;
+                        break;
+                    }
+                }
             }
         }
 
-        Console.WriteLine(result);
+        Console.WriteLine(result1);
+        Console.WriteLine(result2);
+    }
+
+    private static int FindReflection(List<string> pattern, int unallowedResult = -1)
+    {
+        if (FindVerticalReflection(pattern, out int column) && column != unallowedResult)
+        {
+            return column;
+        }
+        else if (FindHorizontalReflection(pattern, out int row) && 100 * row != unallowedResult)
+        {
+            return 100 * row;
+        }
+        else
+        {
+            return -1;
+        }
     }
 
     private static bool FindHorizontalReflection(List<string> pattern, out int row)
