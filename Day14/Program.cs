@@ -1,8 +1,64 @@
-﻿internal class Program
+﻿
+internal class Program
 {
+    private const string Path = @"..\..\..\input.txt";
+
     private static void Main(string[] args)
     {
-        string[] lines = File.ReadAllLines(@"..\..\..\input.txt");
+        char[,] map = ReadMap();
+
+        // Part 1
+        Tilt(map, -1, 0);
+        Console.WriteLine(CalculateNorthLoad(map));
+
+        // Part 2
+        List<int> loads = [];
+        for (int i = 0; i < 200; i++)
+        {
+            SpinCycle(map);
+            loads.Add(CalculateNorthLoad(map));
+        }
+
+        (int cycleStart, List<int> loadCycle) = FindCycle(loads);
+        int targetIndex = (1000000000 - cycleStart - 1) % loadCycle.Count;
+        Console.WriteLine(loadCycle[targetIndex]);
+    }
+
+    private static (int cycleStart, List<int> cycle) FindCycle(List<int> loads)
+    {
+        for (int cycleStart = 0; cycleStart < loads.Count; cycleStart++)
+        {
+            for (int cycleLength = 2; cycleLength < (loads.Count - cycleStart) / 2; cycleLength++)
+            {
+                int offset = 1;
+                bool isCycle = true;
+                while (isCycle && cycleStart + cycleLength * offset < loads.Count)
+                {
+                    for (int pos = 0; pos < cycleLength && cycleStart + offset * cycleLength + pos < loads.Count; pos++)
+                    {
+                        if (loads[cycleStart + pos] != loads[cycleStart + offset * cycleLength + pos])
+                        {
+                            isCycle = false;
+                            break;
+                        }
+                    }
+
+                    offset++;
+                }
+
+                if (isCycle)
+                {
+                    return (cycleStart, loads.Skip(cycleStart).Take(cycleLength).ToList());
+                }
+            }
+        }
+
+        throw new Exception("Found no cycle");
+    }
+
+    private static char[,] ReadMap()
+    {
+        string[] lines = File.ReadAllLines(Path);
         char[,] map = new char[lines.Length, lines[0].Length];
         for (int y = 0; y < lines.Length; y++)
         {
@@ -12,8 +68,7 @@
             }
         }
 
-        Tilt(map, -1, 0);
-        Console.WriteLine(CalculateNorthLoad(map));
+        return map;
     }
 
     private static void Tilt(char[,] map, int vy, int vx)
@@ -43,6 +98,14 @@
                 }
             }
         }
+    }
+
+    private static void SpinCycle(char[,] map)
+    {
+        Tilt(map, -1, 0);
+        Tilt(map, 0, -1);
+        Tilt(map, 1, 0);
+        Tilt(map, 0, 1);
     }
 
     private static int CalculateNorthLoad(char[,] map)
