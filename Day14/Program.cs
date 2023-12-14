@@ -34,9 +34,11 @@ internal class Program
                 bool isCycle = true;
                 while (isCycle && cycleStart + cycleLength * offset < loads.Count)
                 {
-                    for (int pos = 0; pos < cycleLength && cycleStart + offset * cycleLength + pos < loads.Count; pos++)
+                    int firstIndex = cycleStart;
+                    int secondIndex = cycleStart + offset * cycleLength;
+                    for (int pos = 0; pos < cycleLength && secondIndex + pos < loads.Count; pos++)
                     {
-                        if (loads[cycleStart + pos] != loads[cycleStart + offset * cycleLength + pos])
+                        if (loads[firstIndex + pos] != loads[secondIndex + pos])
                         {
                             isCycle = false;
                             break;
